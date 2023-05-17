@@ -2,8 +2,8 @@
 {block name="title"}系统设置{/block}
 {block name="main"}
 <div class="container" style="padding-top:70px;">
-    <div class="col-xs-12 col-sm-10 col-lg-8 center-block" style="float: none;">
 {if $mod=='sys'}
+<div class="col-sm-12 col-md-6 center-block">
 <div class="panel panel-primary">
 <div class="panel-heading"><h3 class="panel-title">系统基本设置</h3></div>
 <div class="panel-body">
@@ -48,18 +48,33 @@
       <input type="date" name="update_date_win" value="{:config_get('update_date_win')}" class="form-control"/>
 	  <font color="green">用于检测更新接口返回</font>
     </div>
+	<div class="form-group">
+      <label>宝塔云监控最新版本号：</label>
+      <input type="text" name="new_version_btm" value="{:config_get('new_version_btm')}" class="form-control"/>
+      <font color="green">用于一键更新脚本获取最新版本号，以及检测更新接口。并确保已在/public/install/src/放置对应版本更新包</font>
+    </div>
+	<div class="form-group">
+      <label>宝塔云监控更新日志：</label>
+      <textarea class="form-control" name="update_msg_btm" rows="3" placeholder="支持HTML代码">{:config_get('update_msg_btm')}</textarea>
+    </div>
+	<div class="form-group">
+      <label>宝塔云监控更新日期：</label>
+      <input type="date" name="update_date_btm" value="{:config_get('update_date_btm')}" class="form-control"/>
+    </div>
 	<div class="form-group text-center">
 	  <input type="submit" name="submit" value="保存" class="btn btn-success btn-block"/>
 	</div>
   </form>
 </div>
 </div>
+</div>
+<div class="col-sm-12 col-md-6 center-block">
 <div class="panel panel-primary">
 <div class="panel-heading"><h3 class="panel-title">宝塔Linux面板接口设置</h3></div>
 <div class="panel-body">
   <form onsubmit="return saveSetting(this)" method="post" class="form" role="form">
     <p>以下宝塔面板请使用官方最新脚本安装并绑定账号，用于获取最新插件列表及插件包</p>
-    <p><a href="/static/file/kaixin.zip">下载专用插件</a>，在面板【软件商店】->【第三方应用】，点击【导入插件】，导入该专用插件，<b>然后重启一次面板</b></p>
+    <p><a href="/static/file/kaixin.zip">下载专用插件(Linux)</a>，在面板【软件商店】->【第三方应用】，点击【导入插件】，导入该专用插件。</p>
 	<div class="form-group">
 	  <label>宝塔面板URL：</label><br/>
 	  <input type="text" name="bt_url" value="{:config_get('bt_url')}" class="form-control"/>
@@ -81,8 +96,7 @@
 <div class="panel-body">
   <form onsubmit="return saveSetting(this)" method="post" class="form" role="form">
     <p>以下宝塔面板请使用官方最新脚本安装并绑定账号，用于获取最新插件列表及插件包</p>
-    <p><a href="/static/file/win/kaixin.zip">下载专用插件</a>，在面板【软件商店】->【第三方应用】，点击【导入插件】，导入该专用插件。</p>
-	<p><a href="/static/file/win/__init__.zip">下载py替换文件</a>，解压覆盖到C:\Program Files\python\Lib\json\目录下，然后重启面板。</p>
+    <p><a href="/static/file/win/kaixin.zip">下载专用插件(Win)</a>，在面板【软件商店】->【第三方应用】，点击【导入插件】，导入该专用插件。</p>
 	<div class="form-group">
 	  <label>宝塔面板URL：</label><br/>
 	  <input type="text" name="wbt_url" value="{:config_get('wbt_url')}" class="form-control"/>
@@ -99,7 +113,9 @@
   </form>
 </div>
 </div>
+</div>
 {elseif $mod=='task'}
+<div class="col-sm-12 col-md-6 center-block">
 <div class="panel panel-success">
 <div class="panel-heading"><h3 class="panel-title">定时任务说明</h3></div>
 <div class="panel-body">
@@ -111,6 +127,8 @@
   </form>
 </div>
 </div>
+</div>
+<div class="col-sm-12 col-md-6 center-block">
 <div class="panel panel-info">
 <div class="panel-heading"><h3 class="panel-title">定时任务设置</h3></div>
 <div class="panel-body">
@@ -129,7 +147,9 @@
   </form>
 </div>
 </div>
+</div>
 {elseif $mod=='account'}
+<div class="col-xs-12 col-sm-8 col-lg-6 center-block" style="float: none;">
 <div class="panel panel-primary">
 <div class="panel-heading"><h3 class="panel-title">管理账号设置</h3></div>
 <div class="panel-body">
@@ -153,7 +173,20 @@
 	<div class="form-group text-center">
 	  <input type="submit" name="submit" value="保存" class="btn btn-success btn-block"/>
 	</div>
+	<a href="javascript:cleancache()" class="btn btn-default btn-sm btn-block">清理缓存</a>
   </form>
+</div>
+</div>
+{elseif $mod=='tools'}
+<div class="col-sm-12 col-md-10 col-lg-8 center-block" style="float: none;">
+<div class="panel panel-primary">
+<div class="panel-heading"><h3 class="panel-title">批量替换工具</h3></div>
+<div class="panel-body">
+  <form onsubmit="return saveAccount(this)" method="post" class="form" role="form">
+	<div class="alert alert-info" style="word-break:break-all;">使用以下命令可以将bt安装包、更新包和脚本文件里面的<code>http://www.example.com</code>批量替换成当前网址<code>{:request()->root(true)}</code>，每次更新版本后只需要执行一次即可。</div>
+    <div class="list-group-item" style="word-break:break-all;">cd {:app()->getRootPath()}app/script && chmod +x convert.sh && ./convert.sh {:app()->getRootPath()} {:request()->root(true)}</div><br/>
+  </form>
+</div>
 </div>
 {/if}
 <script src="//cdn.staticfile.org/layer/3.5.1/layer.js"></script>
@@ -281,6 +314,22 @@ function saveAccount(obj){
 		}
 	});
 	return false;
+}
+function cleancache(){
+	var ii = layer.load(2, {shade:[0.1,'#fff']});
+	$.ajax({
+		type : 'GET',
+		url : '/admin/cleancache',
+		dataType : 'json',
+		success : function(data) {
+			layer.close(ii);
+			layer.msg('清理缓存成功', {icon: 1});
+		},
+		error:function(data){
+            layer.close(ii);
+			layer.msg('服务器错误');
+		}
+	});
 }
 </script>
 {/block}

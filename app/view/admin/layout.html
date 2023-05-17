@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="renderer" content="webkit">
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>{block name="title"}标题{/block}</title>
   <link href="//cdn.staticfile.org/twitter-bootstrap/3.4.1/css/bootstrap.min.css" rel="stylesheet" />
   <link href="//cdn.staticfile.org/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" />
@@ -34,11 +34,12 @@
           <li class="{:checkIfActive('index')}">
             <a href="/admin"><i class="fa fa-home"></i> 后台首页</a>
           </li>
-          <li class="{:checkIfActive('plugins,pluginswin')}">
+          <li class="{:checkIfActive('plugins,pluginswin,deplist')}">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-cubes"></i> 插件列表<b class="caret"></b></a>
             <ul class="dropdown-menu">
               <li class="{:checkIfActive('plugins')}"><a href="/admin/plugins">Linux面板</a></li>
               <li class="{:checkIfActive('pluginswin')}"><a href="/admin/pluginswin">Windows面板</a></li>
+              <li class="{:checkIfActive('deplist')}"><a href="/admin/deplist">一键部署列表</a></li>
             </ul>
           </li>
           <li class="{:checkIfActive('record')}">
@@ -56,6 +57,7 @@
             <ul class="dropdown-menu">
               <li><a href="/admin/set">系统基本设置</a></li>
               <li><a href="/admin/set/mod/task">定时任务设置</a></li>
+              <li><a href="/admin/set/mod/tools">批量替换工具</a></li>
               <li><a href="/admin/set/mod/account">管理账号设置</a></li>
             </ul>
           </li>

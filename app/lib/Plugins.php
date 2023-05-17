@@ -48,8 +48,7 @@ class Plugins
             $list[] = $plugin;
         }
         $data['list'] = $list;
-        if($data['pro']>-1) $data['pro'] = 0;
-        if($data['ltd']>-1) $data['ltd'] = strtotime('+1 year');
+        $data['ltd'] = strtotime('+10 year');
         $json_file = get_data_dir($os).'config/plugin_list.json';
         if(!file_put_contents($json_file, json_encode($data))){
             throw new Exception('保存插件列表失败，文件无写入权限');
@@ -166,6 +165,7 @@ class Plugins
 
     //解密并下载插件主程序文件
     public static function decode_plugin_main($plugin_name, $version, $main_filepath, $os = 'Linux'){
+        if(self::decode_plugin_main_local($main_filepath, $os)) return true;
         $btapi = self::get_btapi($os);
         $result = $btapi->get_decode_plugin_main($plugin_name, $version);
         if($result && isset($result['status'])){
@@ -179,6 +179,61 @@ class Plugins
         }else{
             throw new Exception('解密插件主程序文件失败，接口返回错误');
         }
+    }
+
+    //本地解密插件主程序文件
+    public static function decode_plugin_main_local($main_filepath, $os = 'Linux'){
+        $btapi = self::get_btapi($os);
+        $userinfo = $btapi->get_user_info();
+        if(isset($userinfo['uid'])){
+            $src = file_get_contents($main_filepath);
+            if($src===false)throw new Exception('文件打开失败');
+            if(!$src || strpos($src, 'import ')!==false)return true;
+            $uid = $userinfo['uid'];
+            $serverid = $userinfo['serverid'];
+            $key = md5(substr($serverid, 10, 16).$uid.$serverid);
+            $iv = md5($key.$serverid);
+            $key = substr($key, 8, 16);
+            $iv = substr($iv, 8, 16);
+            $data_arr = explode("\n", $src);
+            $de_text = '';
+            foreach($data_arr as $data){
+                $data = trim($data);
+                if(!empty($data) && strlen($data)!=24){
+                    $tmp = openssl_decrypt($data, 'aes-128-cbc', $key, 0, $iv);
+                    if($tmp) $de_text .= $tmp;
+                }
+            }
+            if(!empty($de_text) && strpos($de_text, 'import ')!==false){
+                file_put_contents($main_filepath, $de_text);
+                return true;
+            }
+            return false;
+        }else{
+            throw new Exception('解密插件主程序文件失败，获取用户信息失败');
+        }
+    }
+
+    public static function decode_module_file($filepath){
+        $src = file_get_contents($filepath);
+        if($src===false)throw new Exception('文件打开失败');
+        if(!$src || strpos($src, 'import ')!==false)return 0;
+        $key = 'Z2B87NEAS2BkxTrh';
+        $iv = 'WwadH66EGWpeeTT6';
+        $data_arr = explode("\n", $src);
+        $de_text = '';
+        foreach($data_arr as $data){
+            $data = trim($data);
+            if(!empty($data)){
+                $tmp = openssl_decrypt($data, 'aes-128-cbc', $key, 0, $iv);
+                if($tmp) $de_text .= $tmp;
+            }
+        }
+        if(!empty($de_text) && strpos($de_text, 'import ')!==false){
+            file_put_contents($filepath, $de_text);
+            return 1;
+        }
+        return 2;
     }
 
     //去除插件主程序文件授权校验
@@ -215,8 +270,9 @@ class Plugins
                 self::download_file($btapi, $filename, $filepath);
                 if(file_exists($filepath)){
                     if($filemd5 && md5_file($filepath) != $filemd5){
+                        $msg = filesize($filepath) < 300 ? file_get_contents($filepath) : '插件文件MD5校验失败';
                         @unlink($filepath);
-                        throw new Exception('插件文件MD5校验失败');
+                        throw new Exception($msg);
                     }
                     return true;
                 }else{
@@ -255,6 +311,23 @@ class Plugins
             }else{
                 throw new Exception('获取文件失败：未知错误');
             }
+        }
+    }
+
+    //刷新一键部署列表
+    public static function refresh_deplist($os = 'Linux'){
+        $btapi = self::get_btapi($os);
+        $result = $btapi->get_deplist();
+        if($result && isset($result['list']) && isset($result['type'])){
+            if(empty($result['list']) || empty($result['type'])){
+                throw new Exception('获取一键部署列表失败：一键部署列表为空');
+            }
+            $json_file = get_data_dir($os).'config/deployment_list.json';
+            if(!file_put_contents($json_file, json_encode($result))){
+                throw new Exception('保存一键部署列表失败，文件无写入权限');
+            }
+        }else{
+            throw new Exception('获取一键部署列表失败：'.(isset($result['msg'])?$result['msg']:'面板连接失败'));
         }
     }
 

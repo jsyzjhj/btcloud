@@ -144,6 +144,18 @@ class Btapi
 		$data = json_decode($result,true);
       	return $data;
 	}
+
+	//获取一键部署列表
+	public function get_deplist(){
+		$url = $this->BT_PANEL.'/plugin?action=a&name=kaixin&s=get_deplist';
+		
+		$p_data = $this->GetKeyData();
+		
+		$result = $this->curl($url,$p_data);
+		
+		$data = json_decode($result,true);
+      	return $data;
+	}
 	
 
   	private function GetKeyData(){
@@ -181,7 +193,7 @@ class Btapi
         return $output;
     }
 
-	private function curl_download($url, $localpath, $timeout = 60)
+	private function curl_download($url, $localpath, $timeout = 300)
     {
     	//定义cookie保存位置
         $cookie_file=app()->getRuntimePath().md5($this->BT_PANEL).'.cookie';

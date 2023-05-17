@@ -26,7 +26,7 @@ if [ "${Centos6Check}" ];then
 fi 
 
 UbuntuCheck=$(cat /etc/issue|grep Ubuntu|awk '{print $2}'|cut -f 1 -d '.')
-if [ "${UbuntuCheck}" -lt "16" ];then
+if [ "${UbuntuCheck}" ] && [ "${UbuntuCheck}" -lt "16" ];then
 	echo "Ubuntu ${UbuntuCheck}不支持安装宝塔面板，建议更换Ubuntu18/20安装宝塔面板"
 	exit 1
 fi
@@ -36,9 +36,9 @@ setup_path="/www"
 python_bin=$setup_path/server/panel/pyenv/bin/python
 cpu_cpunt=$(cat /proc/cpuinfo|grep processor|wc -l)
 
-if [ "$1" ];then
-	IDC_CODE=$1
-fi
+# if [ "$1" ];then
+# 	IDC_CODE=$1
+# fi
 
 GetSysInfo(){
 	if [ -s "/etc/redhat-release" ];then
@@ -54,6 +54,27 @@ GetSysInfo(){
 	echo -e ${SYS_VERSION}
 	echo -e Bit:${SYS_BIT} Mem:${MEM_TOTAL}M Core:${CPU_INFO}
 	echo -e ${SYS_INFO}
+
+	if [ -z "${os_version}" ];then
+		echo -e "============================================"
+		echo -e "检测到为非常用系统安装,建议更换至Centos-7或Debian-10+或Ubuntu-20+系统安装宝塔面板"
+		echo -e "详情请查看系统兼容表：https://docs.qq.com/sheet/DUm54VUtyTVNlc21H?tab=BB08J2"
+		echo -e "特殊情况可通过以下联系方式寻求安装协助情况"
+	fi
+
+	is64bit=$(getconf LONG_BIT)
+	if [ "${is64bit}" == '32' ];then
+		echo -e "宝塔面板不支持32位系统进行安装，请使用64位系统/服务器架构进行安装宝塔"
+		exit 1
+	fi
+
+	S390X_CHECK=$(uname -a|grep s390x)
+	if [ "${S390X_CHECK}" ];then
+		echo -e "宝塔面板不支持s390x架构进行安装，请使用64位系统/服务器架构进行安装宝塔"
+		exit 1
+	fi
+
+	echo -e "============================================"
 	echo -e "请截图以上报错信息发帖至论坛www.bt.cn/bbs求助"
 }
 Red_Error(){
@@ -96,6 +117,33 @@ System_Check(){
 	if [ "${PHP_CHECK}" ] || [ "${MYSQLD_CHECK}" ] || [ "${NGINX_CHECK}" ] || [ "${HTTPD_CHECK}" ];then
 		Install_Check
 	fi
+}
+Set_Ssl(){
+    echo -e ""
+    echo -e "----------------------------------------------------------------------"
+    echo -e "为了您的面板使用安全，建议您开启面板SSL，开启后请使用https访问宝塔面板"
+    echo -e "输入y回车即开启面板SSL并进行下一步安装"
+    echo -e "输入n回车跳过面板SSL配置，直接进行安装"
+    echo -e "10秒后将跳过SSL配置，直接进行面板安装"
+    echo -e "----------------------------------------------------------------------"
+    echo -e ""
+    read -t 10 -p "是否确定开启面板SSL ? (y/n): " yes
+
+    if [ $? != 0 ];then
+        SET_SSL=false
+    else
+        case "$yes" in
+            y)
+                SET_SSL=true
+                ;;
+            n)
+                SET_SSL=false
+				rm -f /www/server/panel/data/ssl.pl
+                ;;
+            *)
+                Set_Ssl
+        esac
+    fi
 }
 Get_Pack_Manager(){
 	if [ -f "/usr/bin/yum" ] && [ -d "/etc/yum.repos.d" ]; then
@@ -183,7 +231,12 @@ get_node_url(){
 	
 	echo '---------------------------------------------';
 	echo "Selected download node...";
-	nodes=(http://dg2.bt.cn http://dg1.bt.cn http://125.90.93.52:5880 http://36.133.1.8:5880 http://123.129.198.197 http://38.34.185.130 http://116.213.43.206:5880 http://128.1.164.196);
+	nodes=(https://dg2.bt.cn https://download.bt.cn https://ctcc1-node.bt.cn https://cmcc1-node.bt.cn https://ctcc2-node.bt.cn https://hk1-node.bt.cn https://na1-node.bt.cn https://jp1-node.bt.cn);
+
+	if [ "$1" ];then
+		nodes=($(echo ${nodes[*]}|sed "s#${1}##"))
+	fi
+
 	tmp_file1=/dev/shm/net_test1.pl
 	tmp_file2=/dev/shm/net_test2.pl
 	[ -f "${tmp_file1}" ] && rm -f ${tmp_file1}
@@ -220,7 +273,7 @@ get_node_url(){
 	if [ -z "$NODE_URL" ];then
 		NODE_URL=$(cat $tmp_file2|sort -g -t " " -k 1|head -n 1|awk '{print $2}')
 		if [ -z "$NODE_URL" ];then
-			NODE_URL='http://download.bt.cn';
+			NODE_URL='https://download.bt.cn';
 		fi
 	fi
 	rm -f $tmp_file1
@@ -282,7 +335,7 @@ Install_RPM_Pack(){
 
 	sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
 	#yum remove -y python-requests python3-requests python-greenlet python3-greenlet
-	yumPacks="libcurl-devel wget tar gcc make zip unzip openssl openssl-devel gcc libxml2 libxml2-devel libxslt* zlib zlib-devel libjpeg-devel libpng-devel libwebp libwebp-devel freetype freetype-devel lsof pcre pcre-devel vixie-cron crontabs icu libicu-devel c-ares libffi-devel bzip2-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel"
+	yumPacks="libcurl-devel wget tar gcc make zip unzip openssl openssl-devel gcc libxml2 libxml2-devel libxslt* zlib zlib-devel libjpeg-devel libpng-devel libwebp libwebp-devel freetype freetype-devel lsof pcre pcre-devel vixie-cron crontabs icu libicu-devel c-ares libffi-devel bzip2-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel qrencode"
 	yum install -y ${yumPacks}
 
 	for yumPack in ${yumPacks}
@@ -304,7 +357,19 @@ Install_RPM_Pack(){
 }
 Install_Deb_Pack(){
 	ln -sf bash /bin/sh
+	UBUNTU_22=$(cat /etc/issue|grep "Ubuntu 22")
+	if [ "${UBUNTU_22}" ];then
+		apt-get remove needrestart -y
+	fi
+	ALIYUN_CHECK=$(cat /etc/motd|grep "Alibaba Cloud ")
+	if [ "${ALIYUN_CHECK}" ] && [ "${UBUNTU_22}" ];then
+		apt-get remove libicu70 -y
+	fi
 	apt-get update -y
+	apt-get install bash -y
+	if [ -f "/usr/bin/bash" ];then
+		ln -sf /usr/bin/bash /bin/sh
+	fi
 	apt-get install ruby -y
 	apt-get install lsb-release -y
 	#apt-get install ntp ntpdate -y
@@ -324,12 +389,12 @@ Install_Deb_Pack(){
 		apt-get install curl -y
 	fi
 
-	debPacks="wget curl libcurl4-openssl-dev gcc make zip unzip tar openssl libssl-dev gcc libxml2 libxml2-dev zlib1g zlib1g-dev libjpeg-dev libpng-dev lsof libpcre3 libpcre3-dev cron net-tools swig build-essential libffi-dev libbz2-dev libncurses-dev libsqlite3-dev libreadline-dev tk-dev libgdbm-dev libdb-dev libdb++-dev libpcap-dev xz-utils git";
+	debPacks="wget curl libcurl4-openssl-dev gcc make zip unzip tar openssl libssl-dev gcc libxml2 libxml2-dev zlib1g zlib1g-dev libjpeg-dev libpng-dev lsof libpcre3 libpcre3-dev cron net-tools swig build-essential libffi-dev libbz2-dev libncurses-dev libsqlite3-dev libreadline-dev tk-dev libgdbm-dev libdb-dev libdb++-dev libpcap-dev xz-utils git qrencode";
 	apt-get install -y $debPacks --force-yes
 
 	for debPack in ${debPacks}
 	do
-		packCheck=$(dpkg -l ${debPack})
+		packCheck=$(dpkg -l|grep ${debPack})
 		if [ "$?" -ne "0" ] ;then
 			apt-get install -y $debPack
 		fi
@@ -409,7 +474,7 @@ Install_Python_Lib(){
 			if [ "$is_package" = "" ];then
 				wget -O $pyenv_path/pyenv/pip.txt $download_Url/install/pyenv/pip.txt -T 5
 				$pyenv_path/pyenv/bin/pip install -U pip
-				$pyenv_path/pyenv/bin/pip install -U setuptools
+				$pyenv_path/pyenv/bin/pip install -U setuptools==65.5.0
 				$pyenv_path/pyenv/bin/pip install -r $pyenv_path/pyenv/pip.txt
 			fi
 			source $pyenv_path/pyenv/bin/activate
@@ -484,6 +549,10 @@ Install_Python_Lib(){
 	if [ "${os_version}" != "" ];then
 		pyenv_file="/www/pyenv.tar.gz"
 		wget -O $pyenv_file $download_Url/install/pyenv/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 10
+		if [ "$?" != "0" ];then
+			get_node_url $download_Url
+			wget -O $pyenv_file $download_Url/install/pyenv/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 10
+		fi
 		tmp_size=$(du -b $pyenv_file|awk '{print $1}')
 		if [ $tmp_size -lt 703460 ];then
 			rm -f $pyenv_file
@@ -539,7 +608,7 @@ Install_Python_Lib(){
 	ln -sf $pyenv_path/pyenv/bin/python3.7 /usr/bin/btpython
 	chmod -R 700 $pyenv_path/pyenv/bin
 	$pyenv_path/pyenv/bin/pip install -U pip
-	$pyenv_path/pyenv/bin/pip install -U setuptools
+	$pyenv_path/pyenv/bin/pip install -U setuptools==65.5.0
 	$pyenv_path/pyenv/bin/pip install -U wheel==0.34.2 
 	$pyenv_path/pyenv/bin/pip install -r $pyenv_path/pyenv/pip.txt
 	source $pyenv_path/pyenv/bin/activate
@@ -554,6 +623,11 @@ Install_Bt(){
 	panelPort="8888"
 	if [ -f ${setup_path}/server/panel/data/port.pl ];then
 		panelPort=$(cat ${setup_path}/server/panel/data/port.pl)
+	else
+		panelPort=$(expr $RANDOM % 55535 + 10000)
+	fi
+	if [ "${PANEL_PORT}" ];then
+		panelPort=$PANEL_PORT
 	fi
 	mkdir -p ${setup_path}/server/panel/logs
 	mkdir -p ${setup_path}/server/panel/vhost/apache
@@ -648,21 +722,39 @@ Set_Bt_Panel(){
 	fi
 
 	password=$(cat /dev/urandom | head -n 16 | md5sum | head -c 8)
+	if [ "$PANEL_PASSWORD" ];then
+		password=$PANEL_PASSWORD
+	fi
 	sleep 1
 	admin_auth="/www/server/panel/data/admin_path.pl"
+	if [ "${SAFE_PATH}" ];then
+		auth_path=$SAFE_PATH
+		echo "/${auth_path}" > ${admin_auth}
+	fi
 	if [ ! -f ${admin_auth} ];then
 		auth_path=$(cat /dev/urandom | head -n 16 | md5sum | head -c 8)
 		echo "/${auth_path}" > ${admin_auth}
 	fi
+	auth_path=$(cat /dev/urandom | head -n 16 | md5sum | head -c 8)
+	echo "/${auth_path}" > ${admin_auth}
 	chmod -R 700 $pyenv_path/pyenv/bin
+	/www/server/panel/pyenv/bin/pip3 install pymongo
+	/www/server/panel/pyenv/bin/pip3 install psycopg2-binary
 	/www/server/panel/pyenv/bin/pip3 install flask -U
 	/www/server/panel/pyenv/bin/pip3 install flask-sock
 	auth_path=$(cat ${admin_auth})
 	cd ${setup_path}/server/panel/
+	if [ "$SET_SSL" == true ]; then
+        btpip install -I pyOpenSSl
+        btpython /www/server/panel/tools.py ssl
+    fi
 	/etc/init.d/bt start
 	$python_bin -m py_compile tools.py
 	$python_bin tools.py username
 	username=$($python_bin tools.py panel ${password})
+	if [ "$PANEL_USER" ];then
+		username=$PANEL_USER
+	fi
 	cd ~
 	echo "${password}" > ${setup_path}/server/panel/default.pl
 	chmod 600 ${setup_path}/server/panel/default.pl
@@ -670,7 +762,7 @@ Set_Bt_Panel(){
 	/etc/init.d/bt restart 	
 	sleep 3
 	isStart=$(ps aux |grep 'BT-Panel'|grep -v grep|awk '{print $2}')
-	LOCAL_CURL=$(curl 127.0.0.1:8888/login 2>&1 |grep -i html)
+	LOCAL_CURL=$(curl 127.0.0.1:${panelPort}/login 2>&1 |grep -i html)
 	if [ -z "${isStart}" ] && [ -z "${LOCAL_CURL}" ];then
 		/etc/init.d/bt 22
 		cd /www/server/panel/pyenv/bin
@@ -678,6 +770,12 @@ Set_Bt_Panel(){
 		ls -al python3.7 python
 		lsattr python3.7 python
 		Red_Error "ERROR: The BT-Panel service startup failed." "ERROR: 宝塔启动失败"
+	fi
+
+	if [ "$PANEL_USER" ];then
+		cd ${setup_path}/server/panel/
+		btpython -c 'import tools;tools.set_panel_username("'$PANEL_USER'")'
+		cd ~
 	fi
 }
 Set_Firewall(){
@@ -748,7 +846,6 @@ Get_Ip_Address(){
 		isHosts=$(cat /etc/hosts|grep 'www.bt.cn')
 		if [ -z "${isHosts}" ];then
 			echo "" >> /etc/hosts
-			echo "116.213.43.206 www.bt.cn" >> /etc/hosts
 			getIpAddress=$(curl -sS --connect-timeout 10 -m 60 https://www.bt.cn/Api/getIpAddress)
 			if [ -z "${getIpAddress}" ];then
 				sed -i "/bt.cn/d" /etc/hosts
@@ -784,6 +881,7 @@ Setup_Count(){
 	echo /www > /var/bt_setupPath.conf
 }
 Install_Main(){
+	#Set_Ssl
 	startTime=`date +%s`
 	Lock_Clear
 	System_Check
@@ -821,7 +919,38 @@ echo "
 +----------------------------------------------------------------------
 | The WebPanel URL will be http://SERVER_IP:8888 when installed.
 +----------------------------------------------------------------------
+| 为了您的正常使用，请确保使用全新或纯净的系统安装宝塔面板，不支持已部署项目/环境的系统安装
++----------------------------------------------------------------------
 "
+
+while [ ${#} -gt 0 ]; do
+	case $1 in
+		-u|--user)
+			PANEL_USER=$2
+			shift 1
+			;;
+		-p|--password)
+			PANEL_PASSWORD=$2
+			shift 1
+			;;
+		-P|--port)
+			PANEL_PORT=$2
+			shift 1
+			;;
+		--safe-path)
+			SAFE_PATH=$2
+			shift 1
+			;;
+		-y)
+			go="y"
+			;;
+		*)
+			IDC_CODE=$1
+			;;
+	esac
+	shift 1
+done
+
 while [ "$go" != 'y' ] && [ "$go" != 'n' ]
 do
 	read -p "Do you want to install Bt-Panel to the $setup_path directory now?(y/n): " go;
@@ -831,23 +960,40 @@ if [ "$go" == 'n' ];then
 	exit;
 fi
 
+ARCH_LINUX=$(cat /etc/os-release |grep "Arch Linux")
+if [ "${ARCH_LINUX}" ] && [ -f "/usr/bin/pacman" ];then
+	pacman -Sy 
+	pacman -S curl wget unzip firewalld openssl pkg-config make gcc cmake libxml2 libxslt libvpx gd libsodium oniguruma sqlite libzip autoconf inetutils sudo --noconfirm
+fi
+
 Install_Main
+
+PANEL_SSL=$(cat /www/server/panel/data/ssl.pl 2> /dev/null)
+if [ "${PANEL_SSL}" == "True" ];then
+	HTTP_S="https"
+else
+	HTTP_S="http"
+fi 
+
 echo > /www/server/panel/data/bind.pl
 echo -e "=================================================================="
 echo -e "\033[32mCongratulations! Installed successfully!\033[0m"
 echo -e "=================================================================="
-echo  "外网面板地址: http://${getIpAddress}:${panelPort}${auth_path}"
-echo  "内网面板地址: http://${LOCAL_IP}:${panelPort}${auth_path}"
+echo  "外网面板地址: ${HTTP_S}://${getIpAddress}:${panelPort}${auth_path}"
+echo  "内网面板地址: ${HTTP_S}://${LOCAL_IP}:${panelPort}${auth_path}"
 echo -e "username: $username"
 echo -e "password: $password"
 echo -e "\033[33mIf you cannot access the panel,\033[0m"
 echo -e "\033[33mrelease the following panel port [${panelPort}] in the security group\033[0m"
 echo -e "\033[33m若无法访问面板，请检查防火墙/安全组是否有放行面板[${panelPort}]端口\033[0m"
+if [ "${HTTP_S}" == "https" ];then
+    echo -e "\033[33m因已开启面板自签证书，访问面板会提示不匹配证书，请参考以下链接配置证书\033[0m"
+	echo -e "\033[33mhttps://www.bt.cn/bbs/thread-105443-1-1.html\033[0m"
+fi
 echo -e "=================================================================="
 
 endTime=`date +%s`
 ((outTime=($endTime-$startTime)/60))
 echo -e "Time consumed:\033[32m $outTime \033[0mMinute!"
-
 
 

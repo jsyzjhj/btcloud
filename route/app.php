@@ -15,6 +15,14 @@ Route::post('/panel/get_unbinding', 'api/return_success');
 Route::post('/bt_cert', 'api/return_error');
 Route::post('/Auth/GetAuthToken', 'api/get_auth_token');
 Route::post('/Auth/GetBindCode', 'api/return_error');
+Route::any('/bt_monitor/update_history', 'api/btm_update_history');
+Route::any('/bt_monitor/latest_version', 'api/btm_latest_version');
+
+Route::group('authorization', function () {
+    Route::post('/login', 'api/authorization_login');
+    Route::post('/info', 'api/authorization_info');
+    Route::miss('api/return_error');
+});
 
 Route::group('api', function () {
     Route::any('/panel/get_soft_list', 'api/get_plugin_list');
@@ -36,6 +44,9 @@ Route::group('api', function () {
     Route::get('/getIpAddress', 'api/get_ip_address');
     Route::post('/Auth/GetAuthToken', 'api/get_auth_token');
     Route::post('/Auth/GetBindCode', 'api/return_error');
+    Route::post('/Auth/GetSSLList', 'api/get_ssl_list');
+    Route::post('/Cert/get_order_list', 'api/return_empty_array');
+    Route::post('/Cert/get_product_list', 'api/return_success');
     Route::get('/Pluginother/get_file', 'api/download_plugin_other');
 
     Route::post('/Pluginother/create_order', 'api/return_error');
@@ -78,6 +89,7 @@ Route::group('api', function () {
     Route::post('/v2/statistics/report_plugin_daily', 'api/return_error');
     Route::get('/panel/notpro', 'api/return_empty');
     Route::post('/Btdeployment/get_deplist', 'api/get_deplist');
+    Route::post('/panel/get_deplist', 'api/get_deplist');
 
     Route::post('/LinuxBeta', 'api/return_error');
     Route::post('/panel/apple_beta', 'api/return_error');
@@ -113,8 +125,13 @@ Route::group('admin', function () {
     Route::get('/list', 'admin/list');
     Route::post('/list_data', 'admin/list_data');
     Route::post('/list_op', 'admin/list_op');
+    Route::get('/deplist', 'admin/deplist');
+    Route::get('/refresh_deplist', 'admin/refresh_deplist');
+    Route::get('/cleancache', 'admin/cleancache');
 
 })->middleware(\app\middleware\CheckAdmin::class);
+
+Route::any('/installapp', 'install/index');
 
 Route::miss(function() {
     return response('404 Not Found')->code(404);

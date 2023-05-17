@@ -8,11 +8,11 @@
 
 Windows版宝塔由于加密文件太多，无法全部解密，因此无法做到全开源。
 
-- 删除pluginAuth.cp38-win_amd64.pyd，将win/pluginAuth.py复制到class文件夹
+- 删除PluginLoader.pyd，将win/PluginLoader.py复制到class文件夹
 
 - 全局搜索替换 https://api.bt.cn => http://www.example.com
 
-- 全局搜索替换 https://www.bt.cn/api/ => http://www.example.com/api/
+- 全局搜索替换 https://www.bt.cn/api/ => http://www.example.com/api/（需排除ipsModel.py）
 
 - 全局搜索替换 http://www.bt.cn/api/ => http://www.example.com/api/
 
@@ -38,8 +38,6 @@ Windows版宝塔由于加密文件太多，无法全部解密，因此无法做�
 
   在 get_update_file() 方法里面 get_url() => GetConfigValue('home')
 
-- class/webshell_check.py 搜索替换 public.GetConfigValue('home') => 'https://www.bt.cn'
-
 - class/plugin_deployment.py 文件 get_icon 和 SetupPackage 方法内，替换 public.GetConfigValue('home') => 'https://www.bt.cn'
 
 - 去除无用的定时任务：task.py 文件
@@ -52,11 +50,13 @@ Windows版宝塔由于加密文件太多，无法全部解密，因此无法做�
 
 - 去除面板日志上报：script/site_task.py 文件
 
-  删除最下面 logs_analysis() 这1行
+  - 删除最下面 logs_analysis() 这1行
 
-- 去除首页广告：BTPanel/static/js/index.js 文件删除最下面index.recommend_paid_version()这一行
+- 去除首页广告：BTPanel/static/js/index.js 文件删除最下面index.recommend_paid_version()这一行以及index.consultancy_services()这一行
 
 - 去除首页自动检测更新，避免频繁请求云端：BTPanel/static/js/index.js 文件注释掉bt.system.check_update这一段代码外的setTimeout
+
+- 去除内页广告：BTPanel/templates/default/layout.html 删除getPaymentStatus();这一行
 
 - [可选]去除各种计算题：复制win/bt.js到 BTPanel/static/ ，在 BTPanel/templates/default/layout.html 的尾部加入
 
@@ -74,5 +74,5 @@ Windows版宝塔由于加密文件太多，无法全部解密，因此无法做�
 
   删除 if not os.path.exists(self.sitePath + '/.htaccess') 这一行
 
-
+- [可选]关闭自动生成访问日志：在 BTPanel/\_\_init\_\_.py  删除public.write_request_log()这一行
 
